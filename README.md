@@ -57,9 +57,9 @@ CREATE INDEX idx_orders_status ON orders(status);
 
 ### 3. Настройка в кабинете ЮKassa
 
-1. [Личный кабинет](https://yookassa.ru/my) → **Настройки → Магазин** → скопируй `shopId`
-2. **Интеграция → API-ключи** → создай секретный ключ
-3. **Интеграция → HTTP-уведомления** → добавь URL webhook:
+1. [Личный кабинет](https://yookassa.ru/my/payments) → в шапке виден `shopId`
+2. [API-ключи](https://yookassa.ru/my/merchant/integration/api-keys) → создай секретный ключ
+3. Там же **HTTP-уведомления** → добавь URL webhook:
    ```
    https://functions.poehali.dev/xxx-webhook
    ```
