@@ -8,7 +8,7 @@
 
 1. Создай таблицы в БД (SQL ниже)
 2. Добавь переменные `YOOKASSA_SHOP_ID` и `YOOKASSA_SECRET_KEY`
-3. После деплоя настрой webhook в кабинете ЮKassa
+3. **После деплоя обязательно:** [настрой HTTP-уведомления](https://yookassa.ru/my/merchant/integration/http-notifications) — укажи URL webhook и выбери все события
 
 ---
 
@@ -59,11 +59,11 @@ CREATE INDEX idx_orders_status ON orders(status);
 
 1. [Личный кабинет](https://yookassa.ru/my/payments) → в шапке виден `shopId`
 2. [API-ключи](https://yookassa.ru/my/merchant/integration/api-keys) → создай секретный ключ
-3. Там же **HTTP-уведомления** → добавь URL webhook:
-   ```
-   https://functions.poehali.dev/xxx-webhook
-   ```
-   Выбери события: `payment.succeeded`, `payment.canceled`
+3. [HTTP-уведомления](https://yookassa.ru/my/merchant/integration/http-notifications) → добавь URL webhook и выбери события:
+   - `payment.succeeded` — успешный платёж
+   - `payment.waiting_for_capture` — платёж нужно подтвердить
+   - `payment.canceled` — отмена платежа
+   - `refund.succeeded` — успешный возврат
 
 ---
 
