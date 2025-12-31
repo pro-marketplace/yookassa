@@ -85,7 +85,7 @@ CREATE INDEX idx_orders_status ON orders(status);
 - `amount`: 1 — 1 000 000 RUB
 - `user_email`: валидный email (нужен для чека)
 - `return_url`: только HTTPS
-- `cart_items`: обязателен для чека (54-ФЗ)
+- `cart_items`: опционально (если не передан, создаётся один item с суммой)
 
 ### POST /yookassa-webhook — уведомления
 

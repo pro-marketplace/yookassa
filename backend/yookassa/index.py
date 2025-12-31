@@ -81,14 +81,16 @@ def create_yookassa_payment(
     # Build receipt items for 54-FZ
     receipt_items = []
     for item in cart_items:
+        qty = int(item.get('quantity', 1))
+        price = float(item.get('price', 0))
         receipt_items.append({
-            "description": item.get('name', 'Товар')[:128],
-            "quantity": str(item.get('quantity', 1)),
+            "description": str(item.get('name', 'Товар'))[:128],
+            "quantity": f"{qty:.3f}",
             "amount": {
-                "value": f"{float(item.get('price', 0)) * int(item.get('quantity', 1)):.2f}",
+                "value": f"{price * qty:.2f}",
                 "currency": "RUB"
             },
-            "vat_code": 1,  # НДС не облагается
+            "vat_code": 1,
             "payment_subject": "commodity",
             "payment_mode": "full_payment"
         })
@@ -191,12 +193,14 @@ def handler(event, context):
             'body': json.dumps({'error': 'return_url must be a valid HTTPS URL'})
         }
 
+    # If no cart_items, create a single item with total amount
     if not cart_items:
-        return {
-            'statusCode': 400,
-            'headers': HEADERS,
-            'body': json.dumps({'error': 'cart_items is required for receipt (54-FZ)'})
-        }
+        cart_items = [{
+            'id': '1',
+            'name': description or 'Оплата',
+            'price': amount,
+            'quantity': 1
+        }]
 
     # Get credentials
     shop_id = os.environ.get('YOOKASSA_SHOP_ID', '')
