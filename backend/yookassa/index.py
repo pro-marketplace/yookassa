@@ -68,13 +68,30 @@ def create_yookassa_payment(
     amount: float,
     description: str,
     return_url: str,
+    customer_email: str,
+    cart_items: list,
     metadata: dict = None
 ) -> dict:
-    """Create payment via YooKassa API."""
+    """Create payment via YooKassa API with receipt (54-FZ)."""
     auth_string = f"{shop_id}:{secret_key}"
     auth_bytes = base64.b64encode(auth_string.encode()).decode()
 
     idempotence_key = str(uuid.uuid4())
+
+    # Build receipt items for 54-FZ
+    receipt_items = []
+    for item in cart_items:
+        receipt_items.append({
+            "description": item.get('name', 'Товар')[:128],
+            "quantity": str(item.get('quantity', 1)),
+            "amount": {
+                "value": f"{float(item.get('price', 0)) * int(item.get('quantity', 1)):.2f}",
+                "currency": "RUB"
+            },
+            "vat_code": 1,  # НДС не облагается
+            "payment_subject": "commodity",
+            "payment_mode": "full_payment"
+        })
 
     payload = {
         "amount": {
@@ -86,7 +103,13 @@ def create_yookassa_payment(
             "type": "redirect",
             "return_url": return_url
         },
-        "description": description
+        "description": description,
+        "receipt": {
+            "customer": {
+                "email": customer_email
+            },
+            "items": receipt_items
+        }
     }
 
     if metadata:
@@ -168,6 +191,13 @@ def handler(event, context):
             'body': json.dumps({'error': 'return_url must be a valid HTTPS URL'})
         }
 
+    if not cart_items:
+        return {
+            'statusCode': 400,
+            'headers': HEADERS,
+            'body': json.dumps({'error': 'cart_items is required for receipt (54-FZ)'})
+        }
+
     # Get credentials
     shop_id = os.environ.get('YOOKASSA_SHOP_ID', '')
     secret_key = os.environ.get('YOOKASSA_SECRET_KEY', '')
@@ -226,6 +256,8 @@ def handler(event, context):
             amount=amount,
             description=f"{description} ({order_number})",
             return_url=return_url,
+            customer_email=user_email,
+            cart_items=cart_items,
             metadata=metadata
         )
 
