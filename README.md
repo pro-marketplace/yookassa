@@ -1,6 +1,14 @@
 # YooKassa Extension
 
-Приём платежей через ЮKassa (Яндекс.Касса). **2 функции**: создание платежа + webhook.
+Приём платежей через ЮKassa. **2 функции**: создание платежа + webhook.
+
+---
+
+## Для ассистента: перед интеграцией
+
+1. Создай таблицы в БД (SQL ниже)
+2. Добавь переменные `YOOKASSA_SHOP_ID` и `YOOKASSA_SECRET_KEY`
+3. После деплоя настрой webhook в кабинете ЮKassa
 
 ---
 
@@ -49,10 +57,9 @@ CREATE INDEX idx_orders_status ON orders(status);
 
 ### 3. Настройка в кабинете ЮKassa
 
-1. Войди в [Личный кабинет](https://yookassa.ru/my)
-2. **Настройки → Магазин** → скопируй `shopId`
-3. **Интеграция → API-ключи** → создай секретный ключ
-4. **Интеграция → HTTP-уведомления** → добавь URL webhook:
+1. [Личный кабинет](https://yookassa.ru/my) → **Настройки → Магазин** → скопируй `shopId`
+2. **Интеграция → API-ключи** → создай секретный ключ
+3. **Интеграция → HTTP-уведомления** → добавь URL webhook:
    ```
    https://functions.poehali.dev/xxx-webhook
    ```
@@ -65,42 +72,27 @@ CREATE INDEX idx_orders_status ON orders(status);
 ### POST /yookassa — создание платежа
 
 ```json
-// Request
 {
   "amount": 1500.00,
   "user_email": "user@example.com",
   "user_name": "Иван Иванов",
-  "user_phone": "+79991234567",
-  "description": "Заказ #123",
-  "return_url": "https://your-site.com/checkout/success",
-  "cart_items": [
-    { "id": "1", "name": "Товар", "price": 1500, "quantity": 1 }
-  ]
-}
-
-// Response
-{
-  "payment_url": "https://yookassa.ru/checkout/...",
-  "payment_id": "2d4d5e6f-...",
-  "order_id": 123,
-  "order_number": "YK-20241231-A1B2C3D4"
+  "return_url": "https://your-site.com/success",
+  "cart_items": [{ "id": "1", "name": "Товар", "price": 1500, "quantity": 1 }]
 }
 ```
 
-### POST /yookassa-webhook — уведомления от ЮKassa
+**Ограничения:**
+- `amount`: 1 — 1 000 000 RUB
+- `user_email`: валидный email
+- `return_url`: только HTTPS
 
-Автоматически обновляет статус заказа при событиях:
-- `payment.succeeded` → status = 'paid'
-- `payment.canceled` → status = 'canceled'
+### POST /yookassa-webhook — уведомления
+
+Автоматически обновляет статус заказа.
 
 ---
 
 ## Frontend
-
-| Файл | Описание |
-|------|----------|
-| `useYookassa.ts` | Хук для создания платежей |
-| `PaymentButton.tsx` | Готовая кнопка оплаты |
 
 ```tsx
 import { PaymentButton } from "./PaymentButton";
@@ -109,27 +101,40 @@ import { PaymentButton } from "./PaymentButton";
   apiUrl="https://functions.poehali.dev/xxx"
   amount={2500}
   userEmail="user@example.com"
-  userName="Иван Иванов"
   returnUrl="https://your-site.com/success"
-  cartItems={cartItems}
-  onSuccess={(orderNumber) => {
-    console.log("Заказ создан:", orderNumber);
-  }}
+  onSuccess={(orderNumber) => console.log(orderNumber)}
 />
 ```
 
 ---
 
-## Поток оплаты
+## Безопасность
 
-```
-1. Пользователь нажимает "Оплатить"
-2. Frontend → POST /yookassa → создаёт заказ в БД
-3. Backend → YooKassa API → получает payment_url
-4. Редирект пользователя на страницу оплаты ЮKassa
-5. После оплаты → редирект на return_url
-6. YooKassa → POST /yookassa-webhook → обновляет статус заказа
-```
+### Webhook верификация
+
+Webhook защищён двумя уровнями:
+
+1. **Проверка IP** — только IP-адреса ЮKassa:
+   - `185.71.76.0/27`
+   - `185.71.77.0/27`
+   - `77.75.153.0/25`
+   - `77.75.156.11`, `77.75.156.35`
+
+2. **Проверка через API** — каждый webhook подтверждается GET-запросом к YooKassa API
+
+### Валидация входных данных
+
+- Email проверяется regex
+- URL должен быть HTTPS
+- Сумма ограничена 1 — 1 000 000 RUB
+
+---
+
+## Тестовый режим
+
+В кабинете ЮKassa включи тестовый режим. Тестовые карты:
+- `5555 5555 5555 4477` — успешная оплата
+- `5555 5555 5555 4444` — отклонённая оплата
 
 ---
 
@@ -137,6 +142,6 @@ import { PaymentButton } from "./PaymentButton";
 
 | Статус | Описание |
 |--------|----------|
-| `pending` | Создан, ожидает оплаты |
-| `paid` | Успешно оплачен |
+| `pending` | Ожидает оплаты |
+| `paid` | Оплачен |
 | `canceled` | Отменён |

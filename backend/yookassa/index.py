@@ -1,6 +1,7 @@
 """YooKassa payment creation handler."""
 import json
 import os
+import re
 import uuid
 import base64
 from datetime import datetime
@@ -8,6 +9,25 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 import psycopg2
+
+
+# =============================================================================
+# VALIDATION
+# =============================================================================
+
+EMAIL_REGEX = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+MIN_AMOUNT = 1.00  # Minimum 1 RUB
+MAX_AMOUNT = 1_000_000.00  # Maximum 1M RUB
+
+
+def is_valid_email(email: str) -> bool:
+    """Validate email format."""
+    return bool(EMAIL_REGEX.match(email))
+
+
+def is_valid_url(url: str) -> bool:
+    """Validate URL (must be https)."""
+    return url.startswith('https://')
 
 # =============================================================================
 # CONSTANTS
@@ -127,25 +147,25 @@ def handler(event, context):
     description = data.get('description', 'Оплата заказа')
     cart_items = data.get('cart_items', [])
 
-    if amount <= 0:
+    if amount < MIN_AMOUNT or amount > MAX_AMOUNT:
         return {
             'statusCode': 400,
             'headers': HEADERS,
-            'body': json.dumps({'error': 'Amount must be greater than 0'})
+            'body': json.dumps({'error': f'Amount must be between {MIN_AMOUNT} and {MAX_AMOUNT} RUB'})
         }
 
-    if not user_email:
+    if not user_email or not is_valid_email(user_email):
         return {
             'statusCode': 400,
             'headers': HEADERS,
-            'body': json.dumps({'error': 'user_email is required'})
+            'body': json.dumps({'error': 'Valid email is required'})
         }
 
-    if not return_url:
+    if not return_url or not is_valid_url(return_url):
         return {
             'statusCode': 400,
             'headers': HEADERS,
-            'body': json.dumps({'error': 'return_url is required'})
+            'body': json.dumps({'error': 'return_url must be a valid HTTPS URL'})
         }
 
     # Get credentials
