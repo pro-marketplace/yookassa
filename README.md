@@ -6,7 +6,13 @@
 
 ## Для ассистента: перед интеграцией
 
-1. Создай таблицы в БД (SQL ниже)
+1. **Проверь таблицу orders** — должны быть ВСЕ столбцы из SQL ниже. Если таблица уже есть, добавь недостающие:
+   ```sql
+   -- Проверь наличие столбцов, добавь если нет:
+   ALTER TABLE orders ADD COLUMN IF NOT EXISTS yookassa_payment_id VARCHAR(100);
+   ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_url TEXT;
+   ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP;
+   ```
 2. Добавь переменные `YOOKASSA_SHOP_ID` и `YOOKASSA_SECRET_KEY`
 3. **После деплоя обязательно:** [настрой HTTP-уведомления](https://yookassa.ru/my/merchant/integration/http-notifications) — укажи URL webhook и выбери все события
 
