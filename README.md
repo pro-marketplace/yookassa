@@ -14,7 +14,13 @@
    ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP;
    ```
 2. Добавь переменные `YOOKASSA_SHOP_ID` и `YOOKASSA_SECRET_KEY`
-3. **После деплоя обязательно:** [настрой HTTP-уведомления](https://yookassa.ru/my/merchant/integration/http-notifications) — укажи URL webhook и выбери все события
+3. **После деплоя обязательно:** [настрой HTTP-уведомления](https://yookassa.ru/my/merchant/integration/http-notifications):
+   - Укажи URL webhook функции
+   - **Отметь ВСЕ чекбоксы:**
+     - `payment.waiting_for_capture`
+     - `payment.succeeded`
+     - `payment.canceled`
+     - `refund.succeeded`
 4. **Создай страницу статуса заказа** — на неё ЮKassa перенаправит пользователя после оплаты. Страница должна показывать статус заказа и благодарность за покупку.
 
 ---
